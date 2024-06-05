@@ -39,7 +39,7 @@
  * @param setpoint       Current setpoint
  * @param stabilizerStep Stabilizer step for rate control
  */
-void supervisorUpdate(const sensorData_t *sensors, const setpoint_t* setpoint, stabilizerStep_t stabilizerStep);
+void supervisorUpdate(const sensorData_t *sensors, const setpoint_t* setpoint, const state_t*,  stabilizerStep_t stabilizerStep);
 
 /**
  * @brief Replace the values in the current setpoint, if required.

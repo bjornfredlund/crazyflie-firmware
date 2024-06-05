@@ -30,6 +30,7 @@
 #include <stdbool.h>
 #include "imu_types.h"
 #include "lighthouse_types.h"
+#include "cusum.h"
 
 /* Data structure used by the stabilizer subsystem.
  * All have a timestamp to be set when the data is calculated.
@@ -244,7 +245,9 @@ typedef union {
 typedef enum mode_e {
   modeDisable = 0,
   modeAbs,
-  modeVelocity
+  modeVelocity,
+  modeAcc,
+  modeRaw,
 } stab_mode_t;
 
 typedef struct setpoint_s {

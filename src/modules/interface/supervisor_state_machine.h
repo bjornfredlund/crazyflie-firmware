@@ -38,6 +38,7 @@ typedef enum {
     supervisorStateExceptFreeFall,
     supervisorStateLocked,
     supervisorStateCrashed,
+	supervisorStateSafeDescent,
     supervisorState_NrOfStates,
 } supervisorState_t;
 
@@ -51,6 +52,9 @@ typedef enum {
   supervisorConditionEmergencyStop,
   supervisorConditionIsCrashed,
   supervisorConditionLandingTimeout,
+  supervisorConditionSafeDescent,
+  supervisorConditionBoardError,
+  supervisorConditionKalmanStatesNominal,
   supervisorCondition_NrOfConditions,
 } supervisorConditions_t;
 
@@ -66,6 +70,9 @@ typedef uint32_t supervisorConditionBits_t;
 #define SUPERVISOR_CB_EMERGENCY_STOP (1 << supervisorConditionEmergencyStop)
 #define SUPERVISOR_CB_CRASHED (1 << supervisorConditionIsCrashed)
 #define SUPERVISOR_CB_LANDING_TIMEOUT (1 << supervisorConditionLandingTimeout)
+#define SUPERVISOR_CB_BOARD_ERROR (1 << supervisorConditionBoardError)
+#define SUPERVISOR_CB_SAFE_DESCENT (1 << supervisorConditionSafeDescent)
+#define SUPERVISOR_CB_KALMAN_RATES_OK (1 << supervisorConditionKalmanStatesNominal)
 
 
 // Enum that is used to describe how to combine the bits in the required field

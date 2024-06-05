@@ -72,7 +72,9 @@
 #include "cfassert.h"
 #include "i2cdev.h"
 #include "autoconf.h"
+#include "ow.h"
 #include "vcp_esc_passthrough.h"
+#include "supervisor_board_disconnected.h"
 #if CONFIG_ENABLE_CPX
   #include "cpxlink.h"
 #endif
@@ -158,6 +160,7 @@ bool systemTest()
   pass &= pmTest();
   pass &= workerTest();
   pass &= buzzerTest();
+  pass &= owTest();
   return pass;
 }
 
@@ -182,6 +185,7 @@ void systemTask(void *arg)
   i2cdevInit(I2C3_DEV);
   i2cdevInit(I2C1_DEV);
   passthroughInit();
+
 
   //Init the high-levels modules
   systemInit();
@@ -212,6 +216,7 @@ void systemTask(void *arg)
   }
   soundInit();
   crtpMemInit();
+  boardSupervisorInit();
 
 #ifdef PROXIMITY_ENABLED
   proximityInit();
