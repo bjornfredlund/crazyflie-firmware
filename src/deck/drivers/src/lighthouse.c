@@ -103,8 +103,6 @@ static deckParams_t paramsList[] = {
 				.runTestWindow = 300,
 		},
 		.stateSignature = STATES_Z | STATES_X | STATES_Y,
-		.stdeviationThreshold = 0.002f,  
-		.windowSize = 139,
 	}, 
 	{ 
 		.params = { 
@@ -123,8 +121,6 @@ static deckParams_t paramsList[] = {
 				.runTestWindow = 300,
 		},
 		.stateSignature = STATES_D2,
-		.stdeviationThreshold = 0.04f,  
-		.windowSize = 17,
 	} 
 };
 

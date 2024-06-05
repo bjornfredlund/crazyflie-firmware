@@ -33,10 +33,7 @@ typedef struct {
 	cusumParams_t params;
 	linearFuncParams_t linearFunc;
 	runTest_t runTest;
-	char* driverName;
 	uint16_t stateSignature;
-	float stdeviationThreshold;
-	int windowSize;
 } deckParams_t;
 
 
