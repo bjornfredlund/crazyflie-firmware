@@ -125,7 +125,6 @@ typedef struct {
 	cusumData_t cusumData;
 	runningStats_t stats;
 	uint32_t lastUpdate;
-	bool cusumActive;
 	bool outage;
 } stateIdentifier;
 
@@ -139,7 +138,6 @@ typedef struct {
 
 
 bool boardErrorCheck();
-void setLeveloutTimeout(float);
 void boardSupervisorInit();
 void boardStatusGet(boardStatus_t*);
 void boardSupervisorTask(void*);

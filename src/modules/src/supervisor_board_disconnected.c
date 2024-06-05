@@ -141,10 +141,7 @@ void boardSupervisorInit()
 				if (currIdentifierIndex < IDENTIFIER_ARRAY_SIZE)
 				{
 					memcpy(&deckIdentifierArray[currIdentifierIndex].info, &deck->driver->deckParams[i], sizeof(deckParams_t));
-					deckIdentifierArray[currIdentifierIndex].cusumActive = true;
-					deckIdentifierArray[currIdentifierIndex].stats.windowSize = deck->driver->deckParams[i].windowSize;
 
-					DEBUG_PRINT("deck %d windowSize = %d\n", currIdentifierIndex, deck->driver->deckParams[i].windowSize);
 					DEBUG_PRINT("Startup signature found: ");
 					print_bitmap(deck->driver->deckParams[i].stateSignature);
 					currIdentifierIndex++;
@@ -160,7 +157,6 @@ void boardSupervisorInit()
 	{ 
 		DEBUG_PRINT("signature = ");
 		print_bitmap(deckIdentifierArray[i].info.stateSignature);
-		DEBUG_PRINT("threshold = %.6f.\n", (double)deckIdentifierArray[i].info.stdeviationThreshold);
 		DEBUG_PRINT("runTestViolationsPermitted: %d. runTestWindow: %ld\n", deckIdentifierArray[i].info.runTest.runTestViolationsPermitted, deckIdentifierArray[i].info.runTest.runTestWindow);
 	} 
 	memcpy(&availableStates, &statesMeasured, sizeof(uint16_t));
@@ -612,21 +608,6 @@ EVENTTRIGGER(velIncoming, float, vfilt, float, vunfilt);
 EVENTTRIGGER(sweepStd, float, std, float, err, float, s);
 EVENTTRIGGER(headingStd, float, std, float, err, float, s);
 
-bool allStdDeviationsNominal(stateIdentifier* ids)
-{ 
-	return true;
-	for(int i = 0; i < currIdentifierIndex; i++)
-	{ 
-		DEBUG_PRINT("i = %d. ", i);
-		if(!isWindowRunning(&ids[i].stats) || getStDeviation(&ids[i].stats) > ids[i].info.stdeviationThreshold)
-
-		{ 
-			DEBUG_PRINT("isWindowRunning[%d] = %d. std[%d] = %.6f. Treshold = %.6f\n", i, isWindowRunning(&ids[i].stats), i, (double)getStDeviation(&ids[i].stats), (double)ids[i].info.stdeviationThreshold);
-			return false;
-		} 
-	} 
-	return true;
-} 
 void resetAll(stateIdentifier* ids)
 { 
 	for(int i = 0; i < currIdentifierIndex; i++)
