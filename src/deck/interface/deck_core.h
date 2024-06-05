@@ -105,10 +105,17 @@ typedef struct deck_driver {
 
   // Secondary memory area for instance for decks with two firmwares.
   const struct deckMemDef_s* memoryDefSecondary;
+  
+  // stores fdd and measurement outage params
+  deckParams_t* deckParams;
+  // len of former
+  uint8_t len;
 
   /* Init and test functions */
   void (*init)(struct deckInfo_s *);
   bool (*test)(void);
+  bool (*connected)(uint16_t*);
+
 } DeckDriver;
 
 #define DECK_DRIVER(NAME) const struct deck_driver * driver_##NAME __attribute__((section(".deckDriver." #NAME), used)) = &(NAME)

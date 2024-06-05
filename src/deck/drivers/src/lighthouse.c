@@ -38,6 +38,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
+#include "supervisor_board_disconnected.h"
+#include "kalman_supervisor.h"
 
 #include "lighthouse.h"
 #include "lighthouse_core.h"
@@ -83,6 +85,48 @@ static const DeckMemDef_t memoryDef = {
   .requiredSize = LIGHTHOUSE_BITSTREAM_SIZE,
   .requiredHash = LIGHTHOUSE_BITSTREAM_CRC,
 };
+static deckParams_t paramsList[] = {
+	{ 
+		.params = { 
+			.threshold = 500.0f,
+			.drift = 0.5f,
+			.lambda = 0.97f,
+		},
+		.linearFunc = { 
+				.k = 200,
+				.m = 200,
+		},
+		.runTest = { 
+				.firstViolation = 0,
+				.violations = 0,
+				.runTestViolationsPermitted = 2,
+				.runTestWindow = 300,
+		},
+		.stateSignature = STATES_Z | STATES_X | STATES_Y,
+		.stdeviationThreshold = 0.002f,  
+		.windowSize = 139,
+	}, 
+	{ 
+		.params = { 
+			.threshold = 750.0f,
+			.drift = 3.0f,
+			.lambda = 0.96f,
+		},
+		.linearFunc = { 
+				.k = 250,
+				.m = 450,
+		},
+		.runTest = { 
+				.firstViolation = 0,
+				.violations = 0,
+				.runTestViolationsPermitted = 2,
+				.runTestWindow = 300,
+		},
+		.stateSignature = STATES_D2,
+		.stdeviationThreshold = 0.04f,  
+		.windowSize = 17,
+	} 
+};
 
 static const DeckDriver lighthouse_deck = {
   .vid = 0xBC,
@@ -96,6 +140,11 @@ static const DeckDriver lighthouse_deck = {
   .memoryDef = &memoryDef,
 
   .init = lighthouseInit,
+
+  .connected = lighthouseConnectedTest,
+  .len = sizeof(paramsList) / sizeof(*paramsList),
+  .deckParams = paramsList,
+  
 };
 
 
