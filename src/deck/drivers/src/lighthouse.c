@@ -1,3 +1,4 @@
+
 /**
  *    ||          ____  _ __
  * +------+      / __ )(_) /_______________ _____  ___
@@ -137,7 +138,6 @@ static const DeckDriver lighthouse_deck = {
 
   .init = lighthouseInit,
 
-  .connected = lighthouseConnectedTest,
   .len = sizeof(paramsList) / sizeof(*paramsList),
   .deckParams = paramsList,
   

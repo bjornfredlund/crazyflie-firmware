@@ -29,7 +29,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "controller.h"
 #include "estimator.h"
+
 
 /**
  * Initialize the stabilizer subsystem and launch the stabilizer loop task.
@@ -43,5 +45,7 @@ void stabilizerInit(StateEstimatorType estimator);
  * @return True if all test has passed. False otherwise.
  */
 bool stabilizerTest(void);
+void setControllerType(ControllerType);
+void switchEstimator(StateEstimatorType);
 
 #endif /* STABILIZER_H_ */
