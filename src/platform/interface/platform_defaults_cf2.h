@@ -126,6 +126,21 @@
 #define PID_POS_Z_KD 0.0f
 #define PID_POS_Z_KFF 0.0f
 
-#define PID_POS_VEL_X_MAX 1.0f
-#define PID_POS_VEL_Y_MAX 1.0f
+#define PID_ACC_Z_KP 12.0f
+#define PID_ACC_Z_KI 0.01f
+#define PID_ACC_Z_KD 1.0f
+#define PID_ACC_Z_KFF 0.0f
+
+#define PID_ACC_Y_KP 15.0f
+#define PID_ACC_Y_KI 0.04f
+#define PID_ACC_Y_KD 1.0f
+#define PID_ACC_Y_KFF 0.0f
+
+#define PID_ACC_X_KP 15.0f
+#define PID_ACC_X_KI 0.04f
+#define PID_ACC_X_KD 1.0f
+#define PID_ACC_X_KFF 0.0f
+
+#define PID_POS_VEL_X_MAX 1.5f
+#define PID_POS_VEL_Y_MAX 1.5f
 #define PID_POS_VEL_Z_MAX 1.0f
