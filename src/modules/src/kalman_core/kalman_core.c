@@ -77,9 +77,6 @@
 #endif
 
 
-
-static bool increasedQ = false;
-
 /**
  * Supporting and utility functions
  */
@@ -129,10 +126,6 @@ static void assertStateNotNaN(const kalmanCoreData_t* this)
 // Small number epsilon, to prevent dividing by zero
 #define EPS (1e-6f)
 
-void increaseQ()
-{ 
-		increasedQ = true;
-} 
 
 void kalmanCoreDefaultParams(kalmanCoreParams_t* params)
 {
@@ -220,19 +213,6 @@ void kalmanCoreInit(kalmanCoreData_t *this, const kalmanCoreParams_t *params, co
   this->lastPredictionMs = nowMs;
   this->lastProcessNoiseUpdateMs = nowMs;
 }
-#include "debug.h"
-void print_matrix(arm_matrix_instance_f32 *matrix) {
-    uint32_t numRows = matrix->numRows;
-    uint32_t numCols = matrix->numCols;
-    
-    DEBUG_PRINT("Matrix (%ldx%ld):\n", numRows, numCols);
-    for (uint32_t i = 0; i < numRows; i++) {
-        for (uint32_t j = 0; j < numCols; j++) {
-            DEBUG_PRINT("%.6f\t", (double)matrix->pData[i * numCols + j]);
-        }
-        DEBUG_PRINT("\n");
-    }
-}
 
 void inferStates(arm_matrix_instance_f32* Hm, uint16_t* stateBitMap)
 { 
@@ -245,82 +225,11 @@ void inferStates(arm_matrix_instance_f32* Hm, uint16_t* stateBitMap)
 	} 
 } 
 
-#include "freeRTOS.h"
-#include "task.h"
-void print_bitmap(uint16_t bitmap) {
-    // Iterate through each bit of the uint16_t bitmap
-    for (int i = 15; i >= 0; i--) {
-        // Check the i-th bit
-        uint16_t mask = 1 << i;
-        uint16_t bit = (bitmap & mask) >> i;
-        DEBUG_PRINT("%d", bit);
-    }
-    DEBUG_PRINT("\n");
-}
-EVENTTRIGGER(sweepError, float, err, float, s, float, NIS);
-EVENTTRIGGER(headingError, float, err, float, s, float, NIS);
-EVENTTRIGGER(NISRej, float, NIS, float, err, float, s, float, open);
-EVENTTRIGGER(windowEvent, float, nowMeasurement, float, lastMeasurement );
-
-
-static bool NISReject(float err, float s)
-{ 
-	static uint32_t lastMeasurement = 0;
-
-	uint32_t nowTick = xTaskGetTickCount();
-
-	float NIS = (err*err) / s;
-
-	bool reject = false;
-
-	static int rejectCount = 0;
-	static bool windowOpen = false;
-
-	if(NIS > 3000)
-	{ 
-		reject = true;
-		eventTrigger_NISRej_payload.NIS = NIS;
-		eventTrigger_NISRej_payload.err = err;
-		eventTrigger_NISRej_payload.s = s;
-  		eventTrigger(&eventTrigger_NISRej);
-		DEBUG_PRINT("Rejecting %.6f\n", (double)NIS);
-	} 
-
-	if((nowTick - lastMeasurement) > 400 && rejectCount == 0)
-	{ 
-		// open filter, accept all measurements
-		reject = false;
-		rejectCount++;
-		windowOpen = true;
-		// maybe increase Q aswell
-		DEBUG_PRINT("Window open\n");
-		//eventTrigger_windowEvent_payload.nowMeasurement = nowTick;
-		eventTrigger_windowEvent_payload.lastMeasurement = 1.0f;
-		eventTrigger(&eventTrigger_windowEvent);
-
-	} 
-	else if(windowOpen)
-	{ 
-		rejectCount++;
-		reject = false;
-		windowOpen = false;
-		eventTrigger_windowEvent_payload.nowMeasurement = 1.0f;
-		eventTrigger(&eventTrigger_windowEvent);
-		DEBUG_PRINT("Window closed\n");
-	} 
-
-
-	lastMeasurement = nowTick;
-
-
-	return reject;
-
-
-} 
 
 // maybe include measurement type here for cusum
 void kalmanCoreScalarUpdate(kalmanCoreData_t* this, arm_matrix_instance_f32 *Hm, float error, float stdMeasNoise)
 {
+  // to send NIS to fdd
   faultMeasurement_t sample;
   u_int16_t bitmap = 0;
   inferStates(Hm, &bitmap);
@@ -363,35 +272,8 @@ void kalmanCoreScalarUpdate(kalmanCoreData_t* this, arm_matrix_instance_f32 *Hm,
     HPHR += Hm->pData[i]*PHTd[i]; // this obviously only works if the update is scalar (as in this function)
   }
   ASSERT(!isnan(HPHR));
-  if(false)
-  { 
-	  float NIS = (error*error)/HPHR;
-	  	
-  if(stdMeasNoise == 0.001f)
-  { 
-
-	  eventTrigger_sweepError_payload.err = error;
-	  eventTrigger_sweepError_payload.s = HPHR;
-	  eventTrigger_sweepError_payload.NIS = NIS;
-
-	  eventTrigger(&eventTrigger_sweepError);
-  } 
-  else {
-	  eventTrigger_headingError_payload.err = error;
-	  eventTrigger_headingError_payload.s = HPHR;
-	  eventTrigger_headingError_payload.NIS = NIS;
-
-	  eventTrigger(&eventTrigger_headingError);
-	  if(false){ 
-		  	
-	  if(NISReject(error, HPHR))
-	  { 
-	 	//return;
-	  } 
-	  } 
-
-  }
-  } 
+  
+  // send NIS to fdd for separate divergence check
   sample.data.scalarUpdate.s = HPHR;
   scalarUpdateEnque(&sample);
 
@@ -758,32 +640,11 @@ static void addProcessNoiseDt(kalmanCoreData_t *this, const kalmanCoreParams_t *
 	assertStateNotNaN(this);
 }
 
-static void increaseProcessNoise(kalmanCoreParams_t* params)
-{ 
-		params->procNoiseVel = 0.5f;
-  		params->procNoisePos = 0.5f;
-} 
-static void decreaseProcessNoise(kalmanCoreParams_t* params)
-{ 
-		params->procNoiseVel = 0.0f;
-  		params->procNoisePos = 0.0f;
-} 
 
 void kalmanCoreAddProcessNoise(kalmanCoreData_t *this, kalmanCoreParams_t *params, const uint32_t nowMs) {
 	float dt = (nowMs - this->lastProcessNoiseUpdateMs) / 1000.0f;
 	static int IncreasedQCounter = 0;
 	if (dt > 0.0f) {
-		if(increasedQ && IncreasedQCounter < 10)
-		{ 
-			increaseProcessNoise(params);
-			IncreasedQCounter++;
-		} 
-		else {
-			IncreasedQCounter = 0;
-			increasedQ = false;
-			decreaseProcessNoise(params);
-		}
-
 		addProcessNoiseDt(this, params, dt);
 		this->lastProcessNoiseUpdateMs = nowMs;
 	}
