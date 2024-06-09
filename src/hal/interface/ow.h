@@ -69,6 +69,7 @@ void owCommonInit();
 bool owCommonTest();
 void owSyslinkReceive(SyslinkPacket *slp);
 bool owScan(uint8_t *nMem);
+bool fastInfo(uint8_t);
 bool owGetinfo(uint8_t selectMem, OwSerialNum *serialNum);
 bool owRead(uint8_t selectMem, uint16_t address, uint8_t length, uint8_t *data);
 bool owWrite(uint8_t selectMem, uint16_t address, uint8_t length, const uint8_t *data);
