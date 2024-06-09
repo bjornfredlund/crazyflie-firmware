@@ -273,25 +273,6 @@ void setControllerType(ControllerType newController)
  * responsibility of the different functions to run slower by skipping call
  * (ie. returning without modifying the output structure).
  */
-#include "lighthouse_position_est.h"
-static void sendIfCrossed()
-{ 
-	int16_t y = state.position.y * 1000.0f;
-
-	static bool notifierd = false;
-	if (y > 1200)
-	{ 
-		//DEBUG_PRINT("Y > 2 \n");
-		notifyCrossedPosition();
-	} 
-	uint32_t tNow = xTaskGetTickCount();
-	if (y>1400 && !notifierd && tNow > 3000)
-	{ 
-		DEBUG_PRINT("Y > 2, %d . now %ld\n", y, tNow);
-		notifierd = true;
-	} 
-
-} 
 static void stabilizerTask(void* param)
 {
 	stabilizerStep_t stabilizerStep;
@@ -350,9 +331,6 @@ static void stabilizerTask(void* param)
 			// Let the supervisor modify the setpoint to handle exceptional conditions
 			supervisorOverrideSetpoint(&setpoint);
 
-			if(true){ 
-				sendIfCrossed();
-			} 
 			controller(&control, &setpoint, &sensorData, &state, stabilizerStep);
 
 			// Critical for safety, be careful if you modify this code!
