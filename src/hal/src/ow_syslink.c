@@ -66,21 +66,22 @@ bool owTest()
   }
   else
   {
-    DEBUG_PRINT("Scan [FAILED].\n");
+	  DEBUG_PRINT("Scan [FAILED].\n");
   }
 
   for (nOwIter = 0; nOwIter < nOwMem; nOwIter++)
   {
-    if (owGetinfo(nOwIter, &sn))
-    {
-      DEBUG_PRINT("Serial 0x%X %X %X %X %X %X %X %X.\n",
-                  sn.type, sn.id[0], sn.id[1], sn.id[2],
-                  sn.id[3], sn.id[4], sn.id[5], sn.crc);
-    }
-    else
-    {
-      DEBUG_PRINT("Mem:%d Getinfo [FAILED].\n", nOwIter);
-    }
+	  if (owGetinfo(nOwIter, &sn))
+	  {
+		  DEBUG_PRINT("Serial 0x%X %X %X %X %X %X %X %X.\n",
+				  sn.type, sn.id[0], sn.id[1], sn.id[2],
+				  sn.id[3], sn.id[4], sn.id[5], sn.crc);
+		  DEBUG_PRINT("sn.type 0x%d. sn.crc %d\n", sn.type, sn.crc);
+	  }
+	  else
+	  {
+		  DEBUG_PRINT("Mem:%d Getinfo [FAILED].\n", nOwIter);
+	  }
   }
 
   return owCommonTest();
@@ -88,200 +89,237 @@ bool owTest()
 
 void owSyslinkReceive(SyslinkPacket *slp)
 {
-  switch (slp->type)
-  {
-    case SYSLINK_OW_SCAN:
-    case SYSLINK_OW_GETINFO:
-    case SYSLINK_OW_READ:
-    case SYSLINK_OW_WRITE:
-      memcpy(&owCmdBuf, slp->data, sizeof(OwCommand));
-      //DEBUG_PRINT("t:%X n:%d:%X\n", slp->type, owCmdBuf.nmem, owCmdBuf.info.memId[0]);
-      owDataIsValid = true;
-      break;
-    default:
-      // Unknown reply
-      owDataIsValid = false;
-      break;
-  }
-  xSemaphoreGive(waitForReply);
+	switch (slp->type)
+	{
+		case SYSLINK_OW_SCAN:
+		case SYSLINK_OW_GETINFO:
+		case SYSLINK_OW_READ:
+		case SYSLINK_OW_WRITE:
+			memcpy(&owCmdBuf, slp->data, sizeof(OwCommand));
+			//DEBUG_PRINT("t:%X n:%d:%X\n", slp->type, owCmdBuf.nmem, owCmdBuf.info.memId[0]);
+			owDataIsValid = true;
+			break;
+		default:
+			// Unknown reply
+			owDataIsValid = false;
+			break;
+	}
+	xSemaphoreGive(waitForReply);
 }
 
-static bool owSyslinkTransfer(uint8_t type, uint8_t length)
+static bool owSyslinkTransferDefault(uint8_t type, uint8_t length, uint16_t timeout)
 {
-  SyslinkPacket slp;
+	SyslinkPacket slp;
 
-  ASSERT(length <= SYSLINK_MTU);
+	ASSERT(length <= SYSLINK_MTU);
 
-  slp.type = type;
-  slp.length = length;
-  memcpy(slp.data, &owCmdBuf, length);
+	slp.type = type;
+	slp.length = length;
+	memcpy(slp.data, &owCmdBuf, length);
 
-  syslinkSendPacket(&slp);
-  // Wait for reply
-  if (xSemaphoreTake(waitForReply, M2T(5000)) == pdTRUE)
-  //if (xSemaphoreTake(waitForReply, portMAX_DELAY))
-  {
-    // We have now got a reply and *owCmd has been filled with data
-    if (owDataIsValid)
-    {
-      owDataIsValid = false;
-      return true;
-    }
-  }
-  else
-  {
-    DEBUG_PRINT("Cmd 0x%X timeout.\n", slp.type);
-  }
+	syslinkSendPacket(&slp);
+	// Wait for reply
+	if (xSemaphoreTake(waitForReply, M2T(timeout)) == pdTRUE)
+		//if (xSemaphoreTake(waitForReply, portMAX_DELAY))
+	{
+		// We have now got a reply and *owCmd has been filled with data
+		if (owDataIsValid)
+		{
+			owDataIsValid = false;
+			return true;
+		}
+	}
+	else
+	{
+		DEBUG_PRINT("Cmd 0x%X timeout.\n", slp.type);
+	}
 
-  return false;
+	return false;
 }
+
+//static bool owSyslinkTransferFast(uint8_t type, uint8_t length)
+//{ 
+	//return owSyslinkTransferDefault(type, length, 1000);
+//} 
+static bool owSyslinkTransfer(uint8_t type, uint8_t length)
+{ 
+	return owSyslinkTransferDefault(type, length, 5000);
+} 
 
 bool owScan(uint8_t *nMem)
 {
-  bool status = false;
+	bool status = false;
 
-  xSemaphoreTake(lockCmdBuf, portMAX_DELAY);
+	xSemaphoreTake(lockCmdBuf, portMAX_DELAY);
 
-  if (owSyslinkTransfer(SYSLINK_OW_SCAN, 0))
-  {
-    *nMem = owCmdBuf.nmem;
-    status = true;
-  }
-  else
-  {
-    status = false;
-  }
+	if (owSyslinkTransfer(SYSLINK_OW_SCAN, 0))
+	{
+		*nMem = owCmdBuf.nmem;
+		status = true;
+	}
+	else
+	{
+		status = false;
+	}
 
-  xSemaphoreGive(lockCmdBuf);
+	xSemaphoreGive(lockCmdBuf);
 
-  return status;
+	return status;
 }
+bool fastInfo(uint8_t selectMem)
+{ 
+	bool status = false;
+
+	if(pdTRUE != xSemaphoreTake(lockCmdBuf, 500))
+	{ 
+		DEBUG_PRINT("Didn't get semaphore\n");
+		return false;
+	} 
+	owCmdBuf.nmem = selectMem;
+
+	if (owSyslinkTransfer(SYSLINK_OW_GETINFO, 1))
+	{
+		if (owCmdBuf.nmem != 0xFF)
+		{
+			status = true;
+		}
+	}
+	else
+	{
+		status = false;
+	}
+
+	xSemaphoreGive(lockCmdBuf);
+
+	return status;
+}
+
 
 bool owGetinfo(uint8_t selectMem, OwSerialNum *serialNum)
 {
-  bool status = false;
+	bool status = false;
 
-  xSemaphoreTake(lockCmdBuf, portMAX_DELAY);
-  owCmdBuf.nmem = selectMem;
+	xSemaphoreTake(lockCmdBuf, portMAX_DELAY);
+	owCmdBuf.nmem = selectMem;
 
-  if (owSyslinkTransfer(SYSLINK_OW_GETINFO, 1))
-  {
-    memcpy(serialNum, owCmdBuf.info.memId, sizeof(OwSerialNum));
-    if (owCmdBuf.nmem != 0xFF)
-    {
-      status = true;
-    }
-  }
-  else
-  {
-    status = false;
-  }
+	if (owSyslinkTransfer(SYSLINK_OW_GETINFO, 1))
+	{
+		memcpy(serialNum, owCmdBuf.info.memId, sizeof(OwSerialNum));
+		if (owCmdBuf.nmem != 0xFF)
+		{
+			status = true;
+		}
+	}
+	else
+	{
+		status = false;
+	}
 
-  xSemaphoreGive(lockCmdBuf);
+	xSemaphoreGive(lockCmdBuf);
 
-  return status;
+	return status;
 }
 
 bool owRead(uint8_t selectMem, uint16_t address, uint8_t length, uint8_t *data)
 {
-  bool status = true;
-  uint16_t currAddr = address;
-  uint16_t endAddr = address + length;
-  uint8_t bytesRead = 0;
+	bool status = true;
+	uint16_t currAddr = address;
+	uint16_t endAddr = address + length;
+	uint8_t bytesRead = 0;
 
-  ASSERT(length <= OW_MAX_SIZE);
+	ASSERT(length <= OW_MAX_SIZE);
 
-  xSemaphoreTake(lockCmdBuf, portMAX_DELAY);
-  owCmdBuf.nmem = selectMem;
+	xSemaphoreTake(lockCmdBuf, portMAX_DELAY);
+	owCmdBuf.nmem = selectMem;
 
-  while (currAddr < endAddr)
-  {
-    if (endAddr - currAddr < OW_READ_SIZE)
-    {
-      owCmdBuf.read.address = currAddr;
-      if (owSyslinkTransfer(SYSLINK_OW_READ, 3 + endAddr - currAddr))
-      {
-        memcpy(data + bytesRead, owCmdBuf.read.data, endAddr - currAddr);
-        currAddr += endAddr - currAddr;
-        bytesRead += endAddr - currAddr;
-      }
-      else
-      {
-        status = false;
-        break;
-      }
-    }
-    else // Size is bigger then OW_READ_SIZE
-    {
-      owCmdBuf.read.address = currAddr;
-      if (owSyslinkTransfer(SYSLINK_OW_READ, 3 + OW_READ_SIZE))
-      {
-        memcpy(data + bytesRead, owCmdBuf.read.data, OW_READ_SIZE);
-        currAddr += OW_READ_SIZE;
-        bytesRead += OW_READ_SIZE;
-      }
-      else
-      {
-        status = false;
-        break;
-      }
-    }
-  }
+	while (currAddr < endAddr)
+	{
+		if (endAddr - currAddr < OW_READ_SIZE)
+		{
+			owCmdBuf.read.address = currAddr;
+			if (owSyslinkTransfer(SYSLINK_OW_READ, 3 + endAddr - currAddr))
+			{
+				memcpy(data + bytesRead, owCmdBuf.read.data, endAddr - currAddr);
+				currAddr += endAddr - currAddr;
+				bytesRead += endAddr - currAddr;
+			}
+			else
+			{
+				status = false;
+				break;
+			}
+		}
+		else // Size is bigger then OW_READ_SIZE
+		{
+			owCmdBuf.read.address = currAddr;
+			if (owSyslinkTransfer(SYSLINK_OW_READ, 3 + OW_READ_SIZE))
+			{
+				memcpy(data + bytesRead, owCmdBuf.read.data, OW_READ_SIZE);
+				currAddr += OW_READ_SIZE;
+				bytesRead += OW_READ_SIZE;
+			}
+			else
+			{
+				status = false;
+				break;
+			}
+		}
+	}
 
-  xSemaphoreGive(lockCmdBuf);
+	xSemaphoreGive(lockCmdBuf);
 
-  return status;
+	return status;
 }
 
 bool owWrite(uint8_t selectMem, uint16_t address, uint8_t length, const uint8_t *data)
 {
-  bool status = true;
-  uint16_t currAddr = address;
-  uint16_t endAddr = address + length;
-  uint8_t bytesWritten = 0;
+	bool status = true;
+	uint16_t currAddr = address;
+	uint16_t endAddr = address + length;
+	uint8_t bytesWritten = 0;
 
-  ASSERT(length <= OW_MAX_SIZE);
+	ASSERT(length <= OW_MAX_SIZE);
 
-  xSemaphoreTake(lockCmdBuf, portMAX_DELAY);
-  owCmdBuf.nmem = selectMem;
+	xSemaphoreTake(lockCmdBuf, portMAX_DELAY);
+	owCmdBuf.nmem = selectMem;
 
-  while (currAddr < endAddr)
-  {
-    if (endAddr - currAddr < OW_MAX_WRITE_SIZE)
-    {
-      owCmdBuf.write.address = currAddr;
-      owCmdBuf.write.length = endAddr - currAddr;
-      memcpy(owCmdBuf.write.data, data + bytesWritten, owCmdBuf.write.length);
-      if (owSyslinkTransfer(SYSLINK_OW_WRITE, 5 + owCmdBuf.write.length))
-      {
-        currAddr += endAddr - currAddr;
-        bytesWritten += endAddr - currAddr;
-      }
-      else
-      {
-        status = false;
-        break;
-      }
-    }
-    else // Size is bigger then OW_MAX_WRITE_SIZE
-    {
-      owCmdBuf.write.address = currAddr;
-      owCmdBuf.write.length = OW_MAX_WRITE_SIZE;
-      memcpy(owCmdBuf.write.data, data + bytesWritten, owCmdBuf.write.length);
-      if (owSyslinkTransfer(SYSLINK_OW_WRITE, 5 + owCmdBuf.write.length))
-      {
-        currAddr += OW_MAX_WRITE_SIZE;
-        bytesWritten += OW_MAX_WRITE_SIZE;
-      }
-      else
-      {
-        status = false;
-        break;
-      }
-    }
-  }
+	while (currAddr < endAddr)
+	{
+		if (endAddr - currAddr < OW_MAX_WRITE_SIZE)
+		{
+			owCmdBuf.write.address = currAddr;
+			owCmdBuf.write.length = endAddr - currAddr;
+			memcpy(owCmdBuf.write.data, data + bytesWritten, owCmdBuf.write.length);
+			if (owSyslinkTransfer(SYSLINK_OW_WRITE, 5 + owCmdBuf.write.length))
+			{
+				currAddr += endAddr - currAddr;
+				bytesWritten += endAddr - currAddr;
+			}
+			else
+			{
+				status = false;
+				break;
+			}
+		}
+		else // Size is bigger then OW_MAX_WRITE_SIZE
+		{
+			owCmdBuf.write.address = currAddr;
+			owCmdBuf.write.length = OW_MAX_WRITE_SIZE;
+			memcpy(owCmdBuf.write.data, data + bytesWritten, owCmdBuf.write.length);
+			if (owSyslinkTransfer(SYSLINK_OW_WRITE, 5 + owCmdBuf.write.length))
+			{
+				currAddr += OW_MAX_WRITE_SIZE;
+				bytesWritten += OW_MAX_WRITE_SIZE;
+			}
+			else
+			{
+				status = false;
+				break;
+			}
+		}
+	}
 
-  xSemaphoreGive(lockCmdBuf);
+	xSemaphoreGive(lockCmdBuf);
 
-  return status;
+	return status;
 }
