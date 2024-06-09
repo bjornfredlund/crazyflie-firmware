@@ -641,7 +641,7 @@ static void addProcessNoiseDt(kalmanCoreData_t *this, const kalmanCoreParams_t *
 }
 
 
-void kalmanCoreAddProcessNoise(kalmanCoreData_t *this, kalmanCoreParams_t *params, const uint32_t nowMs) {
+void kalmanCoreAddProcessNoise(kalmanCoreData_t *this, const kalmanCoreParams_t *params, const uint32_t nowMs) {
 	float dt = (nowMs - this->lastProcessNoiseUpdateMs) / 1000.0f;
 	if (dt > 0.0f) {
 		addProcessNoiseDt(this, params, dt);
