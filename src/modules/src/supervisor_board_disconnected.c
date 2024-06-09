@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include "kalman_core.h"
 #include "stabilizer_types.h"
-#include "freeRTOS.h"
+#include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
