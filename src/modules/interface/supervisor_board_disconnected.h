@@ -7,7 +7,6 @@
 #include "stabilizer_types.h"
 #include "supervisor_state_machine.h"
 #include "cusum.h"
-#include "runningstats.h"
 #include <assert.h>
 #include "controller_emergency.h"
 #include "freeRTOSConfig.h"
