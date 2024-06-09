@@ -608,15 +608,6 @@ EVENTTRIGGER(velIncoming, float, vfilt, float, vunfilt);
 EVENTTRIGGER(sweepStd, float, std, float, err, float, s);
 EVENTTRIGGER(headingStd, float, std, float, err, float, s);
 
-void resetAll(stateIdentifier* ids)
-{ 
-	for(int i = 0; i < currIdentifierIndex; i++)
-	{ 
-		runningStatsReset(&ids[i].stats);
-	} 
-	DEBUG_PRINT("All stats reseted\n");
-
-} 
  
 
 static bool allRunTestsNominal(stateIdentifier* deckIdentifierArray)
@@ -651,7 +642,6 @@ void boardSupervisorTask(void *param)
 
 	int index = 0;
 	bool transitionedBack = true;
-	resetAll(deckIdentifierArray);
 
 	bool shouldCusum = false;
 

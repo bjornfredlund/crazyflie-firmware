@@ -121,7 +121,6 @@ typedef struct {
 typedef struct { 
 	deckParams_t info;
 	cusumData_t cusumData;
-	runningStats_t stats;
 	uint32_t lastUpdate;
 	bool outage;
 } stateIdentifier;
