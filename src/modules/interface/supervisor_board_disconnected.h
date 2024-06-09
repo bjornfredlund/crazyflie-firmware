@@ -9,7 +9,6 @@
 #include "cusum.h"
 #include <assert.h>
 #include "controller_emergency.h"
-#include "freeRTOSConfig.h"
 #include "kalman_core.h"
 
 #define IDENTIFIER_ARRAY_SIZE (2*DECK_MAX_COUNT)
